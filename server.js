@@ -39,6 +39,8 @@ app.post('/webhook', async (req, res) => {
 });
 
 // Start server
-app.listen(3000, () => {
-  console.log('Webhook server is running on http://localhost:3000');
+const PORT = process.env.PORT || 3000; // Use environment variable for port or default to 3000
+app.listen(PORT, () => {
+  console.log(`Webhook server is running on http://localhost:${PORT}`);
 });
+
