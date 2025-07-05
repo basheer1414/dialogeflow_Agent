@@ -1,46 +1,47 @@
 const express = require('express');
-const axios = require('axios');
 const bodyParser = require('body-parser');
-
+const axios = require('axios');
 const app = express();
+
+// Middleware to parse incoming request bodies
 app.use(bodyParser.json());
 
-const OPENAI_API_KEY = 'YOUR_OPENAI_API_KEY';  // Your OpenAI API Key here
+// Default route to check if the server is working
+app.get('/', (req, res) => {
+  res.send('Server is running!');
+});
 
-// Webhook endpoint to handle Dialogflow requests
+// Webhook route for Dialogflow
 app.post('/webhook', async (req, res) => {
-  const userQuery = req.body.queryResult.queryText;  // Get user's message
-
   try {
-    // Send request to OpenAI API
-    const openAIResponse = await axios.post('https://api.openai.com/v1/completions', {
-      model: 'text-davinci-003',  // Use GPT-3
-      prompt: userQuery,
-      max_tokens: 50,
-      temperature: 0.7
+    const { queryResult } = req.body;
+    const userMessage = queryResult.queryText;
+
+    // Example: Forward message to OpenAI for response
+    const openAiResponse = await axios.post('https://api.openai.com/v1/completions', {
+      model: 'text-davinci-003', // Use the correct model
+      prompt: userMessage,
+      max_tokens: 150,
     }, {
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      }
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
     });
 
-    // Send response back to Dialogflow
-    const responseText = openAIResponse.data.choices[0].text.trim();
+    const openAiReply = openAiResponse.data.choices[0].text.trim();
+
+    // Send the response back to Dialogflow
     res.json({
-      fulfillmentText: responseText,  // Send OpenAI response to Dialogflow
+      fulfillmentText: openAiReply,
     });
   } catch (error) {
     console.error(error);
-    res.json({
-      fulfillmentText: "Sorry, I couldn't process that. Try again later.",
-    });
+    res.status(500).send('Error processing request');
   }
 });
 
-// Start server
-const PORT = process.env.PORT || 3000; // Use environment variable for port or default to 3000
+// Set the port from the environment variable, or fallback to 3000
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Webhook server is running on http://localhost:${PORT}`);
 });
-
